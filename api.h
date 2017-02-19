@@ -11,7 +11,7 @@ typedef struct Sequential {
 	
 	void* vars;
 	
-	void (*destroy) (struct Sequential* vector);
+	void (*destroy) (struct Sequential*);
 
 	void (*push_front) (struct Sequential* vector, void* content);
 	void (*push_back) (struct Sequential* vector, void* content);
@@ -28,7 +28,7 @@ Sequential* vector_create (int size, void** initial_content);
 Sequential* list_create (int size, void** initial_content);
 
 
-#include "vector/vector.c"
+//#include "vector/vector.c"
 #include "list/list.c"
 
 /*
