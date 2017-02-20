@@ -46,6 +46,8 @@ void* pull_front (Sequential* );
 void* pull_back (Sequential* );
 void* get(Sequential* , int index);
 void insert (Sequential* lst, int index, void* content);
+void swap(Sequential* lst, int index1, int index2);
+void rewrite (Sequential* lst, int index, void* content);
 node* getNth(Sequential *lst, size_t index);
 Sequential* list_create(int size, void** initial_content){
 
@@ -57,8 +59,10 @@ Sequential* list_create(int size, void** initial_content){
 	lst->push_back = (push_back);
 	lst->pull_front = (pull_front);
 	lst->pull_back = (pull_back);
+	lst->rewrite = rewrite;
 	lst->get = (get);
 	lst->insert = (insert);
+	lst->swap = (swap);
 
 	LST->tail = LST->head;
 	LST->size = 0;
@@ -185,6 +189,7 @@ void insert (Sequential* lst, int index, void* content){
         exit(5);
     }
     ins = (node*) malloc(sizeof(node));
+	
     ins->data = content;
     ins->prev = elm;
     ins->next = elm->next;
@@ -203,6 +208,27 @@ void insert (Sequential* lst, int index, void* content){
     LST->size++;
 }
 
+void swap(Sequential* lst, int index1, int index2){
+	
+	node* elm1;
+    node* elm2;
+	void* tmp ;
+	printf("swap0\n");
+    elm1 = getNth(lst, index1);
+	elm2 = getNth(lst, index2);
+	printf("swap1 tmp - %p elm1 - %p elm2 - %p data1 - %p data2 - %p\n", tmp, elm1, elm2, elm1->data, elm2->data);
+	tmp = elm1->data;
+	elm1->data = elm2->data;
+	elm2->data = tmp;
+}
+
+void rewrite (Sequential* lst, int index, void* content){
+
+	node* elm = getNth(lst, index);
+
+	elm->data = content;
+
+}
 
 void destroy(Sequential* lst){
 	
