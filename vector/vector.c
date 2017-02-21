@@ -1,8 +1,8 @@
 #include <stdlib.h>
 
-
 typedef struct V_vars {
 	int size;
+	int counter;
 	void** array;
 };
 
@@ -28,21 +28,23 @@ void vector_insert (Sequential* this, int index, void* content);
 			VECTOR CONSTRUCTOR
 --------------------------------------------------------*/
 
+
 Sequential* vector_create (int size, void** initial_content) {
 	
 	if (size <= 0) {
 		perror ("Invalid vector size %d!\n", size);
 		return NULL;
 	}
-	
+
 	if (initial_content == NULL) {
 		perror ("Invalid initial values array!\n");
 		return NULL;
 	}
 	
 	Sequential* this = (Vector*) calloc (1, sizeof (Vector));
+
 	this->vars = (void*) calloc (1, size (V_vars));
-	vrs->array = (void**) calloc (size, sizeof (void*));
+	vrs->array = (void*) calloc (size, sizeof (void*));
 	
 	for (int i = 0; i < size; i++) {
 		this->array[i] = initial_content[i];
@@ -52,20 +54,21 @@ Sequential* vector_create (int size, void** initial_content) {
 	vrs->counter = 0;
 	vrs->elem_size = elem_size;
 	
-	vrs->push_front = (*vector_push_front);
-	vrs->destroy = (*vector_destroy);
+	this->push_front = (*vector_push_front);
+	this->destroy = (*vector_destroy);
 	
-	vrs->push_front = vector_push_front;
-	vrs->push_back = vector_push_back;
-	vrs->pull_front = vector_pull_front;
-	vrs->pull_back = vector_pull_back;
-	vrs->rewrite = vector_rewrite;
-	vrs->get = vector_get;
-	vrs->resize = vector_resize;
-	vrs->swap = vector_swap;
-	vrs->insert = vector_insert;
+	this->push_front = vector_push_front;
+	this->push_back = vector_push_back;
+	this->pull_front = vector_pull_front;
+	this->pull_back = vector_pull_back;
+	this->rewrite = vector_rewrite;
+	this->get = vector_get;
+	this->resize = vector_resize;
+	this->swap = vector_swap;
+	this->insert = vector_insert;
 	
-	return vrs;
+	return this;
+
 }
 
 
@@ -132,7 +135,6 @@ void vector_rewrite (Vector* this, int index, void* content) {
 
 	if (vector_private_revise_index (index, vrs->size)) {
 		vrs->array[index] = content;
-	}
 	
 }
 
@@ -192,7 +194,6 @@ void vector_swap (Vector* this, int index1, int index2) {
 		void* temporary = vrs->array[index1];
 		vrs->array[index1] = vrs->array[index2];
 		vrs->array[index2] = temporary;
-			
 	}
 
 }
@@ -208,7 +209,7 @@ void vector_swap (Vector* this, int index1, int index2) {
 void vector_insert (Vector* this, int index, void* content) {
 
 	if (vector_private_revise_index (index, vrs->size)) {
-		vrs->resize (vrs, vrs->size + 1);
+		this->resize (this, vrs->size + 1);
 		
 		for (int i = size - 2; i >= index; i--) 
 			vrs->array[i + 1] = vrs->array[i];
@@ -226,7 +227,7 @@ void vector_insert (Vector* this, int index, void* content) {
 
 char vector_private_revise_index (int index, int size) {
 	
-	if (index >= vrs->size) {
+	if (index >= size) {
 		perror ("Asking for %d'th element in the vector containing %d elements!\n", index, size);
 		return 0;
 	}
