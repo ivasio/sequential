@@ -4,7 +4,7 @@
 #include "../api.h"
 
 
-#define LST ((list*)(lst->vars))
+#define listof(lst) ((list*)(lst->vars))
 /*////////////////////////////////////////////////////////
 typedef struct Sequential {
 	
@@ -40,47 +40,61 @@ struct list{
 	//int type_size;
 }typedef list;
 
-void destroy (Sequential* );
+	void  destroy (Sequential* );
+	void  resize (Sequential* , int size);
+	void  swap (Sequential*, Iterator index1, Iterator index2);
+	void  insert (Sequential*, Iterator index, void* content);
 	
-void push_front (Sequential* , void* content);
-void push_back(Sequential* , void* content);
-void* pull_front (Sequential* );
-void* pull_back (Sequential* );
-void* get(Sequential* , int index);
-void insert (Sequential* lst, int index, void* content);
-void swap(Sequential* lst, int index1, int index2);
-void rewrite (Sequential* lst, int index, void* content);
-node* getNth(Sequential *lst, size_t index);
+	void begin (Sequential*, Iterator pointer);
+	void end (Sequential*, Iterator pointer);
+	void next (Sequential*, Iterator pointer);
+	void prev (Sequential*, Iterator pointer);
+	void set (Sequential*, Iterator pointer, void* content);
+	void* get (Sequential*, Iterator pointer);
+
+	Iterator iterator_init (struct Sequential* container);
+	void iterator_destroy (Iterator pointer);
+
+	node* getNth(Sequential *lst, size_t index);
+
+
 Sequential* list_create(int size, void** initial_content){
 
 	Sequential* lst = malloc(sizeof(Sequential));
 	//printf("first\n");
 	lst->vars = (void*)malloc(sizeof(list));
 	lst->destroy = (destroy);
-	lst->push_front = (push_front);
-	lst->push_back = (push_back);
-	lst->pull_front = (pull_front);
-	lst->pull_back = (pull_back);
-	lst->rewrite = rewrite;
+	lst->begin = begin;
+	lst->end = end;
+	lst->next = next;
+	lst->prev = prev;
+	lst->set = set;
+	lst->iterator_init = iterator_init;
+	lst->iterator_destroy = iterator_destroy;
+	//lst->rewrite = rewrite;
 	lst->get = (get);
 	lst->insert = (insert);
 	lst->swap = (swap);
 
-	LST->tail = LST->head;
-	LST->size = 0;
-	printf("lst->head - %p\nlst->tail - %p\n", LST->head, LST->tail);
+	list* l = listof(lst);
+	l->tail = l->head;
+	l->size = 0;
+	printf("lst->head - %p\nlst->tail - %p\n", l->head, l->tail);
 	//printf("%p\n %p\n %p\n %p\n",((list*)(lst->vars))->head, ((list*)(lst->vars))->tail, ((list*)(lst->vars))->head->next, ((list*)(lst->vars))->head->prev);
 	//printf("second\n");
+	void* p;
 	int i = 0;
 	for (i = 0; i < size; i++)
 	{
 		//printf("1\n");
-		push_back(lst, initial_content[i]);
+		end(lst, p);
+		set(lst, p, initial_content[i]);
+		//push_back(lst, initial_content[i]);
 	}
 	//printf("last\n");
 	return lst;
 }
-
+/*
 void push_back(Sequential* lst, void* content){
    node *tmp = (node*) malloc(sizeof(node));
     if (tmp == NULL) {
@@ -170,23 +184,71 @@ void* get(struct Sequential* lst, int index){
 	printf("elem - %p	elem->data - %p	  data - %c\n", tmp,tmp->data, ((char*)(tmp->data))[0]);
     return tmp->data;
 }
+*/
 
-node* getNth(Sequential *lst, size_t index) {
-    node *tmp = LST->head;
-    size_t i = 0;
- 
-    while (tmp && i < index) {
-        tmp = tmp->next;
-        i++;
-    }
- 
-    return tmp;
+Iterator iterator_init (struct Sequential* lst){
+
+	void* p = ((list*)(lst))->head;
+	return p;
 }
 
-void insert (Sequential* lst, int index, void* content){
+void iterator_destroy (Iterator p){
+	
+	if(p)
+		free(p);
+}
+
+void* get (Sequential* lst, Iterator p){
+
+	return ((node*)p)->data;
+}
+
+void set (Sequential* container, Iterator p, void* content){
+
+	((node*)p)->data = content;	
+}
+
+void begin (Sequential* lst, Iterator p){
+
+	p = (void*)(((list*)(lst->vars))->head);
+}
+
+void end (Sequential* lst, Iterator p){
+
+	node* last = ((list*)(lst->vars))->tail;
+	node* tmp = (node*) malloc(sizeof(node));
+    if (tmp == NULL) {
+        exit(3);
+    }
+    tmp->next = NULL;
+    tmp->prev = last;
+
+	p = tmp;
+
+}
+
+
+void next (Sequential* container, Iterator p){
+
+	if(((node*)p)->next)
+		p = ((node*)p)->next;
+}
+
+void prev (Sequential* container, Iterator p){
+
+	if(((node*)p)->prev)
+		p = ((node*)p)->prev;
+
+}
+
+
+void insert(Sequential* lst, Iterator index, void* content){
+	
+	list* l = listof(lst);
+
     node *elm = NULL;
     node *ins = NULL;
-    elm = getNth(lst, index);
+    elm = index;
     if (elm == NULL) {
         exit(5);
     }
@@ -201,40 +263,41 @@ void insert (Sequential* lst, int index, void* content){
     elm->next = ins;
  
     if (!elm->prev) {
-        LST->head = elm;
+        l->head = elm;
     }
     if (!elm->next) {
-        LST->tail = elm;
+        l->tail = elm;
     }
  
-    LST->size++;
+    l->size++;
 }
 
-void swap(Sequential* lst, int index1, int index2){
+void swap(Sequential* lst, Iterator index1, Iterator index2){
 	
 	node* elm1;
     node* elm2;
 	void* tmp ;
 	printf("swap0\n");
-    elm1 = getNth(lst, index1);
-	elm2 = getNth(lst, index2);
+    elm1 = index1;
+	elm2 = index2;
 	printf("swap1 tmp - %p elm1 - %p elm2 - %p data1 - %p data2 - %p\n", tmp, elm1, elm2, elm1->data, elm2->data);
 	tmp = elm1->data;
 	elm1->data = elm2->data;
 	elm2->data = tmp;
 }
 
-void rewrite (Sequential* lst, int index, void* content){
+/*void rewrite (Sequential* lst, Iterator index, void* content){
 
-	node* elm = getNth(lst, index);
+	node* elm = index;
 
 	elm->data = content;
 
-}
+}*/
 
 void destroy(Sequential* lst){
 	
-	node* tmp = LST->head;
+	list* l = listof(lst);
+	node* tmp = l->head;
 	node* next = NULL;
 	while (tmp){
 		next = tmp->next;
