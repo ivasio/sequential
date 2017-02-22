@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include "../api.h"
 
 typedef struct vector_variables_t {
 	int size;

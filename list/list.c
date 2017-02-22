@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "../api.h"
+
 
 #define LST ((list*)(lst->vars))
 /*////////////////////////////////////////////////////////
