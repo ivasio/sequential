@@ -1,37 +1,54 @@
 #include <stdlib.h>
+#include <stdio.h>
 #include "../api.h"
 
 typedef struct vector_variables_t {
 	int size;
-	int counter;
 	void** array;
 } vector_variables_t;
 
 
-/* Very important define! As Sequential* instance->vars is of type void*
- * to be compatible with List, it's necessary to conduct defined type convertion
+/* Very important function! As Sequential* instance->vars is of type void*
+ * to be compatible with List, it's necessary to conduct this type convertion
  * every time when trying to get access to the internal variables of instance->vars
  */
  
-#define vrs ((vector_variables_t*)(this->vars))
+vector_variables_t* vectorof (void* vars) {
+	
+	return (vector_variables_t*)vars;
+	
+}
 
+// Vector methods declarations
 
 void vector_destroy (Sequential* this);
 	
-void vector_push_front (Sequential* this, void* content);
-void vector_push_back (Sequential* this, void* content);
-void* vector_pull_front (Sequential* this);
-void* vector_pull_back (Sequential* this);
-void vector_rewrite (Sequential* this, int index, void* content);
-void* vector_get (Sequential* this, int index);
 void vector_resize (Sequential* this, int size);
-void vector_swap (Sequential* this, int index1, int index2);
-void vector_insert (Sequential* this, int index, void* content);
+void vector_swap (Sequential* this, Iterator index1, Iterator index2);
+void vector_insert (Sequential* this, Iterator index, void* content);
+
+// Vector iterator methods declarations
+
+Iterator vector_iterator_init (Sequential* this);
+void vector_iterator_destroy (Iterator pointer);
+
+void vector_begin (Sequential* this, Iterator pointer);
+void vector_end (Sequential* this, Iterator pointer);
+void vector_next (Sequential* this, Iterator pointer);
+void vector_prev (Sequential* this, Iterator pointer);
+void vector_set (Sequential* this, Iterator pointer, void* content);
+void* vector_get (Sequential* this, Iterator pointer);
+
+// Vector service functions declarations
 
 char vector_private_revise_index (int index, int size);
 char vector_private_validate_instance (Sequential* this);
 
 
+
+//========================================================
+// 			Vector methods implementations
+//========================================================
 
 /*--------------------------------------------------------
 			VECTOR CONSTRUCTOR
@@ -40,6 +57,7 @@ char vector_private_validate_instance (Sequential* this);
 
 Sequential* vector_create (int size, void** initial_content) {
 	
+	// Parameters validation
 	if (size <= 0) {
 		perror ("Invalid vector size!\n");
 		return NULL;
@@ -50,30 +68,39 @@ Sequential* vector_create (int size, void** initial_content) {
 		return NULL;
 	}
 	
+	// Allocating the container
 	Sequential* this = (Sequential*) calloc (1, sizeof (Sequential));
 
+	// Allocating the variables storage
 	this->vars = (void*) calloc (1, sizeof (vector_variables_t));
-	vrs->array = (void**) calloc (size, sizeof (void*));
+	vector_variables_t* vars = vectorof (this->vars);
+	
+	// Initializing the internal variables
+	vars->array = (void**) calloc (size, sizeof (void*));
 	
 	for (int i = 0; i < size; i++) {
-		vrs->array[i] = initial_content[i];
+		vars->array[i] = initial_content[i];
 	}
 	
-	vrs->size = size;
-	vrs->counter = size;
+	vars->size = size;
 	
-	this->push_front = (*vector_push_front);
+	// Initializing the methods of Vector
 	this->destroy = (*vector_destroy);
+
+	this->resize = (*vector_resize);
+	this->swap = (*vector_swap);
+	this->insert = (*vector_insert);
 	
-	this->push_front = vector_push_front;
-	this->push_back = vector_push_back;
-	this->pull_front = vector_pull_front;
-	this->pull_back = vector_pull_back;
-	this->rewrite = vector_rewrite;
-	this->get = vector_get;
-	this->resize = vector_resize;
-	this->swap = vector_swap;
-	this->insert = vector_insert;
+	this->begin = (*vector_begin);
+	this->end = (*vector_end);
+	this->next = (*vector_next);
+	this->prev = (*vector_prev);
+	this->set = (*vector_set);
+	this->get = (*vector_get);
+
+	this->iterator_init = (*vector_iterator_init);
+	this->iterator_destroy = (*vector_iterator_destroy);
+
 	
 	return this;
 
@@ -88,95 +115,14 @@ void vector_destroy (Sequential* this) {
 	
 	if (vector_private_validate_instance (this)) {
 		
-		free (vrs->array);
+		vector_variables_t* vars = vectorof (this->vars);
+		
+		free (vars->array);
 		free (this->vars);
 		free (this);
 		
 	}
 	
-}
-
-
-/*--------------------------------------------------------
-
---------------------------------------------------------*/
-
-void vector_push_front (Sequential* this, void* content) {
-
-	
-
-}
-
-
-/*--------------------------------------------------------
-			FIRST ELEMENT SETTER (ADDS NEW ONE)
---------------------------------------------------------*/
-
-void vector_push_back (Sequential* this, void* content) {
-
-	if (vector_private_validate_instance (this)) {
-		
-		this->resize (this, vrs->size + 1);
-		
-		for (int i = vrs->size - 2; i >= 0; i--) 
-			vrs->array[i + 1] = vrs->array[i];
-		
-		vrs->array[0] = content;
-	}
-
-}
-
-
-/*--------------------------------------------------------
-			LAST ELEMENT GETTER
---------------------------------------------------------*/
-
-void* vector_pull_front (Sequential* this) {
-
-	if (!vector_private_validate_instance (this)) return NULL;
-	
-	return vrs->array[vrs->size - 1];
-
-}
-
-
-/*--------------------------------------------------------
-			THE 1st ELEMENT GETTER
---------------------------------------------------------*/
-
-void* vector_pull_back (Sequential* this) {
-
-	if (!vector_private_validate_instance (this)) return NULL;
-	
-	return vrs->array[0];
-
-}
-
-
-/*--------------------------------------------------------
-			REWRITES THE ELEMENT
---------------------------------------------------------*/
-
-void vector_rewrite (Sequential* this, int index, void* content) {
-
-	if (vector_private_revise_index (index, vrs->size) &&
-		vector_private_validate_instance (this)) {
-		vrs->array[index] = content;
-	}
-}
-
-
-/*--------------------------------------------------------
-			VECTOR ELEMENT GETTER
---------------------------------------------------------*/
-
-void* vector_get (Sequential* this, int index) {
-
-	if (!vector_private_revise_index (index, vrs->size) || 
-		vector_private_validate_instance (this)) return NULL;
-	
-	return vrs->array[index];
-
 }
 
 
@@ -193,22 +139,23 @@ void vector_resize (Sequential* this, int size) {
 			return;
 		}
 		
-		int old_size = vrs->size;
-		vrs->size = size;
+		vector_variables_t* vars = vectorof (this->vars);
+		
+		int old_size = vars->size;
+		vars->size = size;
 		
 		void** new_array = (void**) calloc (size, sizeof (void*));
 		
 		for (int i = 0; i < old_size && i < size; i++) 
-			new_array[i] = vrs->array[i];
+			new_array[i] = vars->array[i];
 			
 		if (old_size < size) {
 			for (int i = old_size; i < size; i++) 
 				new_array[i] = 0;
 		}
 		
-		free (vrs->array);
-		vrs->array = new_array;
-		vrs->counter += size - old_size;
+		free (vars->array);
+		vars->array = new_array;
 	
 	}
 	
@@ -219,15 +166,15 @@ void vector_resize (Sequential* this, int size) {
 			2 ELEMENTS SWAP FUNCTION
 --------------------------------------------------------*/
 
-void vector_swap (Sequential* this, int index1, int index2) {
+void vector_swap (Sequential* this, Iterator index1, Iterator index2) {
 
-	if (vector_private_revise_index (index1, vrs->size) &&
-		vector_private_revise_index (index2, vrs->size) &&
-		vector_private_validate_instance (this)) {
-			
-		void* temporary = vrs->array[index1];
-		vrs->array[index1] = vrs->array[index2];
-		vrs->array[index2] = temporary;
+	if (vector_private_validate_instance (this)) {
+		
+		vector_variables_t* vars = vectorof (this->vars);
+
+		void* temporary = *(void**)index1;
+		*(void**)index1 = *(void**)index2;
+		*(void**)index2 = temporary;
 	}
 
 }
@@ -240,43 +187,157 @@ void vector_swap (Sequential* this, int index1, int index2) {
 * farther and places _content_ on the _index_'th place
 --------------------------------------------------------*/
 
-void vector_insert (Sequential* this, int index, void* content) {
+void vector_insert (Sequential* this, Iterator index, void* content) {
 	
-	if (vector_private_revise_index (index, vrs->size) && 
-		vector_private_validate_instance (this)) {
-		this->resize (this, vrs->size + 1);
+	if (vector_private_validate_instance (this)) {
+
+		vector_variables_t* vars = vectorof (this->vars);
+
+		this->resize (this, vars->size + 1);
 		
-		for (int i = vrs->size - 2; i >= index; i--) 
-			vrs->array[i + 1] = vrs->array[i];
+		for (Iterator i = vars->array + vars->size - 2; i >= index; i--) 
+			*((void**)(i + 1)) = *(void**)i;
 			
-		vrs->array[index] = content;
+		*(void**)index = content;
 	}
+
+}
+
+
+//========================================================
+// 			Vector iterator methods implementations
+//========================================================
+
+
+/*--------------------------------------------------------
+			ITERATOR POINTER CONSTRUCTOR 
+
+* Default value - first element
+--------------------------------------------------------*/
+
+Iterator vector_iterator_init (Sequential* this) {
+	
+	if (!vector_private_validate_instance (this)) return NULL;
+	
+	vector_variables_t* vars = vectorof (this->vars);
+	return (Iterator)(vars->array);
+	  
+}
+
+
+/*--------------------------------------------------------
+			ITERATOR POINTER DESTRUCTOR
+--------------------------------------------------------*/
+
+void vector_iterator_destroy (Iterator pointer) {
+	
+	pointer = NULL;
+	
+}
+
+
+/*--------------------------------------------------------
+			PLACES THE POINTER ON THE FIRST ELEMENT
+--------------------------------------------------------*/
+
+void vector_begin (Sequential* this, Iterator pointer) {
+
+	if (vector_private_validate_instance (this)) {
+
+		vector_variables_t* vars = vectorof (this->vars);
+		pointer = (Iterator)(vars->array);
+
+	}
+}
+
+
+/*--------------------------------------------------------
+			PLACES THE POINTER ON THE LAST ELEMENT
+--------------------------------------------------------*/
+
+void vector_end (Sequential* this, Iterator pointer) {
+
+	if (vector_private_validate_instance (this)) {
+
+		vector_variables_t* vars = vectorof (this->vars);
+		pointer = (Iterator)(vars->array + vars->size - 1);
+
+	}
+}
+
+
+/*--------------------------------------------------------
+			PLACES THE POINTER ON THE NEXT ELEMENT
+--------------------------------------------------------*/
+
+void vector_next (Sequential* this, Iterator pointer) {
+
+	if (vector_private_validate_instance (this)) {
+
+		vector_variables_t* vars = vectorof (this->vars);
+		printf ("Next : diff = %d\n", (Iterator)(vars->array + vars->size) - pointer);
+		if (pointer < (Iterator)(vars->array + vars->size)) {
+			printf ("Yep ptr = %p\n", pointer);
+			pointer++;
+			printf ("Done ptr = %p\n\n", pointer);
+		}
+
+	}
+}
+
+
+/*--------------------------------------------------------
+			PLACES THE POINTER ON THE PREVIOUS ELEMENT
+--------------------------------------------------------*/
+
+void vector_prev (Sequential* this, Iterator pointer) {
+
+	if (vector_private_validate_instance (this)) {
+
+		vector_variables_t* vars = vectorof (this->vars);
+		if (pointer >= (Iterator)(vars->array)) pointer--;
+
+	}
+}
+
+
+/*--------------------------------------------------------
+			VECTOR ELEMENT SETTER
+--------------------------------------------------------*/
+
+void vector_set (Sequential* this, Iterator pointer, void* content) {
+
+	if (vector_private_validate_instance (this)) {
+		
+		vector_variables_t* vars = vectorof (this->vars);
+		
+		*(void**)pointer = content;
+		
+	}
+}
+
+
+/*--------------------------------------------------------
+			VECTOR ELEMENT GETTER
+--------------------------------------------------------*/
+
+void* vector_get (Sequential* this, Iterator pointer) {
+
+	if (!vector_private_validate_instance (this)) return NULL;
+	
+	vector_variables_t* vars = vectorof (this->vars);
+	
+	return *(void**)pointer;
 
 }
 
 
 
 
+//========================================================
+// 			Vector service functions implementations
+//========================================================
 
-
-
-char vector_private_revise_index (int index, int size) {
-	
-	if (index >= size) {
-		//perror ("Asking for %d'th element in the vector containing %d elements!\n", index, size);
-		perror ("Asking for element with an invalid index!\n");
-		return 0;
-	}
-	
-	if (index < 0) {
-		//perror ("Asking for the element with negatize index %d!\n", index);
-		perror ("Asking for the element with negatize index!\n");
-		return 0;
-	}
-	
-	return 1;
-	
-}
 
 
 char vector_private_validate_instance (Sequential* this) {
@@ -286,20 +347,16 @@ char vector_private_validate_instance (Sequential* this) {
 		return 0;
 	}
 	
-	if (vrs->size <= 0) {
-		//perror ("Invalid size %d of the vector!\n", vrs->size);
+	vector_variables_t* vars = vectorof (this->vars);
+	
+	if (vars->size <= 0) {
+		//perror ("Invalid size %d of the vector!\n", vars->size);
 		perror ("Invalid size of the vector!\n");
 		return 0;
 	}
 	
-	if (vrs->array == NULL) {
+	if (vars->array == NULL) {
 		perror ("Vector was not initialized properly!\n");
-		return 0;
-	}
-	
-	if (vrs->counter >= vrs->size || vrs->counter < 0) {
-		//perror ("Invalid internal pointer %d in the vector containing %d elements!\n", vrs->counter, vrs->size);
-		perror ("Invalid internal pointer in the vector!\n");
 		return 0;
 	}
 	
