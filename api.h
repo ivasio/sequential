@@ -1,6 +1,7 @@
-#pragma once
+#ifndef SEQUENTIAL_LIB_H_
+#define SEQUENTIAL_LIB_H_
 
-typedef void* Iterator;
+typedef void** Iterator;
 
 struct Sequential typedef Sequential;
 
@@ -11,8 +12,8 @@ typedef struct Sequential {
 	void  (*destroy) (Sequential* container);
 
 	void  (*resize) (Sequential* container, int size);
-	void  (*swap) (Sequential* container, Iterator index1, Iterator index2);
-	void  (*insert) (Sequential* container, Iterator index, void* content);
+	void  (*swap) (Sequential* container, Iterator pointer1, Iterator pointer2);
+	void  (*insert) (Sequential* container, Iterator pointer, void* content);
 	
 	void (*begin) (Sequential* container, Iterator pointer);
 	void (*end) (Sequential* container, Iterator pointer);
@@ -26,8 +27,8 @@ typedef struct Sequential {
 	
 } Sequential;
 
-Sequential* vector_create (int size, void** initial_content);
-Sequential* list_create (int size, void** initial_content);
+Sequential* vector_create (int size, void** initial_content, size_t content_size);
+Sequential* list_create (int size, void** initial_content, size_t content_size);
 
 
-
+#endif  // SEQUENTIAL_LIB_H_

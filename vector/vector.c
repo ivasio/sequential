@@ -5,6 +5,7 @@
 typedef struct vector_variables_t {
 	int size;
 	void** array;
+	size_t content_size;
 } vector_variables_t;
 
 
@@ -55,7 +56,7 @@ char vector_private_validate_instance (Sequential* this);
 --------------------------------------------------------*/
 
 
-Sequential* vector_create (int size, void** initial_content) {
+Sequential* vector_create (int size, void** initial_content, size_t content_size) {
 	
 	// Parameters validation
 	if (size <= 0) {
@@ -79,10 +80,13 @@ Sequential* vector_create (int size, void** initial_content) {
 	vars->array = (void**) calloc (size, sizeof (void*));
 	
 	for (int i = 0; i < size; i++) {
-		vars->array[i] = initial_content[i];
+		vars->array[i] = *(void**)((char*)initial_content + i * content_size);
+		//printf ("%d : %d\n", i, *((char*)initial_content + i * content_size));
 	}
 	
 	vars->size = size;
+	vars->content_size = content_size;
+	
 	
 	// Initializing the methods of Vector
 	this->destroy = (*vector_destroy);
@@ -188,22 +192,23 @@ void vector_swap (Sequential* this, Iterator index1, Iterator index2) {
 * farther and places _content_ on the _index_'th place
 --------------------------------------------------------*/
 
-void vector_insert (Sequential* this, Iterator index, void* content) {
+void vector_insert (Sequential* this, Iterator pointer, void* content) {
 	
 	if (!vector_private_validate_instance (this) || 
-		!vector_private_revise_index (this, index)) return;
+		!vector_private_revise_index (this, pointer)) return;
 
 	vector_variables_t* vars = vectorof (this->vars);
 
-	int offset = *(void**)index - (void*)(vars->array);
+	int offset = *pointer - (void*)(vars->array);
 	
 	this->resize (this, vars->size + 1);
-	*(void**)index = (void*)(vars->array) + offset;
+	*pointer = (void*)(vars->array) + offset;
 	
-	for (int i = vars->size - 2; i >= offset / sizeof (void*); i--) 
+	int initial_index = (int)(offset / sizeof (void*));
+	for (int i = vars->size - 2; i >= initial_index; i--) 
 		vars->array[i + 1] = vars->array[i];
 	
-	**(void***)index = content; 
+	**(void***)pointer = content; 
 
 }
 
@@ -252,7 +257,7 @@ void vector_begin (Sequential* this, Iterator pointer) {
 		!vector_private_revise_index (this, pointer)) return;
 
 	vector_variables_t* vars = vectorof (this->vars);
-	*(void**)pointer = (Iterator)(vars->array);
+	*pointer = (Iterator)(vars->array);
 
 }
 
@@ -267,7 +272,7 @@ void vector_end (Sequential* this, Iterator pointer) {
 		!vector_private_revise_index (this, pointer)) return;
 
 	vector_variables_t* vars = vectorof (this->vars);
-	*(void**)pointer = (Iterator)(vars->array + vars->size - 1);
+	*pointer = (Iterator)(vars->array + vars->size - 1);
 
 }
 
@@ -283,8 +288,8 @@ void vector_next (Sequential* this, Iterator pointer) {
 
 	vector_variables_t* vars = vectorof (this->vars);
 	
-	if (*(void**)pointer < (Iterator)(vars->array + vars->size - 1))
-		*(void**)pointer += sizeof (void*);
+	if (*pointer < (void*)(vars->array + vars->size - 1))
+		*pointer += sizeof (void*);
 
 }
 
@@ -299,8 +304,8 @@ void vector_prev (Sequential* this, Iterator pointer) {
 		!vector_private_revise_index (this, pointer)) return;
 
 	vector_variables_t* vars = vectorof (this->vars);
-	if (*(void**)pointer > (Iterator)(vars->array)) 
-		*(void**)pointer -= sizeof (void*);
+	if (*pointer > (void*)(vars->array)) 
+		*pointer -= sizeof (void*);
 
 }
 
@@ -347,8 +352,8 @@ char vector_private_revise_index (Sequential* this, Iterator pointer) {
 
 	vector_variables_t* vars = vectorof (this->vars);
 	
-	if (*(void**)pointer >= (void*)(vars->array) && 
-		*(void**)pointer < (void*)(vars->array + vars->size))
+	if (*pointer >= (void*)(vars->array) && 
+		*pointer < (void*)(vars->array + vars->size))
 		return 1;
 	else
 		return 0;
