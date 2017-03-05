@@ -31,13 +31,11 @@ int main(int argc, char* argv[]){
 	fread((char*)buffer, size, sizeof(*buffer), file);
 	if (buffer == 0) 
 		perror("fread");
-	printf("%d\t %p\n", size, buffer);
 
 	Sequential* c = list_create(0, (void**)NULL, sizeof(char*));
 	Iterator ptr = c->iterator_init(c);
 	c->end(c, ptr);
 	c->set(c, ptr, "~~");
-	printf("%p\n", c->get(c, ptr));
 	int index = 0;
 	int i = 0;
 	int k = 0;
@@ -91,7 +89,6 @@ int main(int argc, char* argv[]){
 	c->begin(c, sptr);
 	c->end(c, ptr);
 	c->prev(c, ptr);
-	printf("IM HERE\n");
 	c->next(c, sptr);
 	while(*sptr != *ptr){
 		fprintf(fout, "%s\n", (char*)(c->get(c, sptr)));
