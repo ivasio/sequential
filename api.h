@@ -21,7 +21,8 @@ typedef struct Sequential {
 	void (*prev) (Sequential* container, Iterator pointer);
 	void (*set) (Sequential* container, Iterator pointer, void* content);
 	void* (*get) (Sequential* container, Iterator pointer);
-
+	int (*get_size) (Sequential* container);
+	
 	Iterator (*iterator_init) (struct Sequential* container);
 	void (*iterator_destroy) (Iterator pointer);
 	
