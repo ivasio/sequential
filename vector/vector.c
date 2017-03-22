@@ -39,6 +39,7 @@ void vector_next (Sequential* this, Iterator pointer);
 void vector_prev (Sequential* this, Iterator pointer);
 void vector_set (Sequential* this, Iterator pointer, void* content);
 void* vector_get (Sequential* this, Iterator pointer);
+int vector_get_size (Sequential* container);
 
 // Vector service functions declarations
 
@@ -101,7 +102,8 @@ Sequential* vector_create (int size, void** initial_content, size_t content_size
 	this->prev = (*vector_prev);
 	this->set = (*vector_set);
 	this->get = (*vector_get);
-
+	this->get_size = (*vector_get_size);
+	
 	this->iterator_init = (*vector_iterator_init);
 	this->iterator_destroy = (*vector_iterator_destroy);
 
@@ -342,6 +344,19 @@ void* vector_get (Sequential* this, Iterator pointer) {
 }
 
 
+/*--------------------------------------------------------
+			VECTOR ARRAY SIZE GETTER
+--------------------------------------------------------*/
+
+int vector_get_size (Sequential* this) {
+	
+	if (!vector_private_validate_instance (this)) return 0;
+	
+	vector_variables_t* vars = vectorof (this->vars);
+	
+	return vars->size;
+	
+}
 
 
 //========================================================
