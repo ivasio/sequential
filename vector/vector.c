@@ -43,8 +43,8 @@ int vector_get_size (Sequential* container);
 
 // Vector service functions declarations
 
-char vector_private_revise_index (Sequential* this, Iterator pointer);
-char vector_private_validate_instance (Sequential* this);
+int vector_private_revise_index (Sequential* this, Iterator pointer);
+int vector_private_validate_instance (Sequential* this);
 
 
 
@@ -103,7 +103,7 @@ Sequential* vector_create (int size, void** initial_content, size_t content_size
 	this->set = (*vector_set);
 	this->get = (*vector_get);
 	this->get_size = (*vector_get_size);
-	
+	this->in_range = (*vector_private_revise_index);
 	this->iterator_init = (*vector_iterator_init);
 	this->iterator_destroy = (*vector_iterator_destroy);
 
@@ -204,6 +204,7 @@ void vector_insert (Sequential* this, Iterator pointer, void* content) {
 	int offset = *pointer - (void*)(vars->array);
 	
 	this->resize (this, vars->size + 1);
+	offset += sizeof (void*);
 	*pointer = (void*)(vars->array) + offset;
 	
 	int initial_index = (int)(offset / sizeof (void*));
@@ -211,7 +212,7 @@ void vector_insert (Sequential* this, Iterator pointer, void* content) {
 		vars->array[i + 1] = vars->array[i];
 	
 	**(void***)pointer = content; 
-
+	
 }
 
 
@@ -255,8 +256,7 @@ void vector_iterator_destroy (Iterator pointer) {
 
 void vector_begin (Sequential* this, Iterator pointer) {
 
-	if (!vector_private_validate_instance (this) || 
-		!vector_private_revise_index (this, pointer)) return;
+	if (!vector_private_validate_instance (this)) return;
 
 	vector_variables_t* vars = vectorof (this->vars);
 	*pointer = (Iterator)(vars->array);
@@ -270,8 +270,7 @@ void vector_begin (Sequential* this, Iterator pointer) {
 
 void vector_end (Sequential* this, Iterator pointer) {
 
-	if (!vector_private_validate_instance (this) || 
-		!vector_private_revise_index (this, pointer)) return;
+	if (!vector_private_validate_instance (this)) return;
 
 	vector_variables_t* vars = vectorof (this->vars);
 	*pointer = (Iterator)(vars->array + vars->size - 1);
@@ -290,7 +289,7 @@ void vector_next (Sequential* this, Iterator pointer) {
 
 	vector_variables_t* vars = vectorof (this->vars);
 	
-	if (*pointer < (void*)(vars->array + vars->size - 1))
+	if (*pointer <= (void*)(vars->array + vars->size - 1))
 		*pointer += sizeof (void*);
 
 }
@@ -306,9 +305,9 @@ void vector_prev (Sequential* this, Iterator pointer) {
 		!vector_private_revise_index (this, pointer)) return;
 
 	vector_variables_t* vars = vectorof (this->vars);
-	if (*pointer > (void*)(vars->array)) 
+	if (*pointer >= (void*)(vars->array)) 
 		*pointer -= sizeof (void*);
-
+	
 }
 
 
@@ -363,7 +362,7 @@ int vector_get_size (Sequential* this) {
 // 			Vector service functions implementations
 //========================================================
 
-char vector_private_revise_index (Sequential* this, Iterator pointer) {
+int vector_private_revise_index (Sequential* this, Iterator pointer) {
 
 	vector_variables_t* vars = vectorof (this->vars);
 	
@@ -376,7 +375,7 @@ char vector_private_revise_index (Sequential* this, Iterator pointer) {
 }
 
 
-char vector_private_validate_instance (Sequential* this) {
+int vector_private_validate_instance (Sequential* this) {
 	
 	if (this == NULL) {
 		perror ("Invalid vector pointer!\n");
